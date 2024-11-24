@@ -1,0 +1,18 @@
+name: Unbeaten AT check
+on:
+  schedule:
+    - cron: "55 * * * *"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Check unbeaten ATs
+        env:
+          SEASON_3_ID: ${{ secrets.SEASON_3_ID }}
+          SEASON_3_SECRET: ${{ secrets.SEASON_3_ID }}
+        run: bun run index.ts

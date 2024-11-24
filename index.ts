@@ -15,10 +15,10 @@ while (process.env[`SEASON_${season}_ID`]) {
   season++;
 }
 
-const allATs = await fetch("https://map-monitor.xk.io/tmx/unbeaten_ats").then(
-  (r) => r.json(),
-);
-const unbeatenTrackIds = allATs.tracks.map((t) => t[0]);
+const allUnbeatenATs = await fetch(
+  "https://map-monitor.xk.io/tmx/unbeaten_ats",
+).then((r) => r.json());
+const unbeatenTrackIds = allUnbeatenATs.tracks.map((t) => t[0]);
 
 const removeTrackFromMapPack = async (trackId, mapPack) => {
   await fetch(
