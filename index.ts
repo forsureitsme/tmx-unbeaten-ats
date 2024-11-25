@@ -1,18 +1,23 @@
-import type {
+import {
   IMapPack,
   IMapPacksBySeason,
-  MapMonitorUnbeatenAt,
+  MapId,
   MapPackField,
+  //TmxMapStatus,
   TmxTrack,
-} from "types";
+} from "index.d";
+import TMXAPI from "TMXAPI";
+import MapMonitorAPI from "MapMonitorAPI";
 
-const tmxApiBaseUrl = "https://trackmania.exchange/api";
 const startingSeason = 3;
 const mapPacksBySeason: IMapPacksBySeason = {};
 const seasonFields = ["id", "secret"];
 
 let season = startingSeason;
-while (process.env[`SEASON_${season}_ID`]) {
+while (
+  process.env[`SEASON_${season}_ID`] &&
+  process.env[`SEASON_${season}_SECRET`]
+) {
   mapPacksBySeason[season] = {};
 
   seasonFields.forEach((field: MapPackField) => {
@@ -24,59 +29,73 @@ while (process.env[`SEASON_${season}_ID`]) {
   season++;
 }
 
-const allUnbeatenATs = await fetch(
-  "https://map-monitor.xk.io/tmx/unbeaten_ats",
-).then((r) => r.json());
-const unbeatenTrackIds: number[] = allUnbeatenATs.tracks.map(
-  (t: MapMonitorUnbeatenAt) => t[0],
-);
-
-const removeTrackFromMapPack = async (trackId: number, mapPack: IMapPack) => {
-  const r = await fetch(
-    `${tmxApiBaseUrl}/mappack/manage/${mapPack.id}/remove_map/${trackId}?secret=${mapPack.secret}`,
-    {
-      method: "DELETE",
-    },
-  ).then((r) => r.json());
-  console.log(`${trackId}: ${r.Message}`);
-};
-
-const addTrackToMapPack = async (trackId: number, mapPack: IMapPack) => {
-  const r = await fetch(
-    `${tmxApiBaseUrl}/mappack/manage/${mapPack.id}/add_map/${trackId}?secret=${mapPack.secret}`,
-    {
-      method: "POST",
-    },
-  ).then((r) => r.json());
-  console.log(`${trackId}: ${r.Message}`);
-};
-
-Object.keys(mapPacksBySeason).forEach(async (s) => {
-  const mapPack = mapPacksBySeason[s];
-  const mapPackTracks = await fetch(
-    `${tmxApiBaseUrl}/mappack/get_mappack_tracks/${mapPack.id}?secret=${mapPack.secret}`,
-  ).then((r) => r.json());
-
-  const mapPackTrackIds: number[] = mapPackTracks.map(
-    (m: TmxTrack) => m.TrackID,
+const removeBeatenMapsFromMapPack = async (
+  mapPackTracks: TmxTrack[],
+  unbeatenThisSeason: MapId[],
+  mapPack: IMapPack,
+) => {
+  console.log("# Removing beaten maps from mappack.");
+  const beatenMapsInMapPack = mapPackTracks.filter(
+    (t) => !unbeatenThisSeason.includes(t.TrackID),
   );
-  const unbeatenThisSeason = unbeatenTrackIds.filter(
-    (id) => id >= (+s - 1) * 100000 && id < +s * 100000,
-  );
-
-  const beatenMapsInMapPack = mapPackTrackIds.filter(
-    (id) => !unbeatenThisSeason.includes(id),
-  );
-  await beatenMapsInMapPack.reduce(async (_, trackId) => {
-    await removeTrackFromMapPack(trackId, mapPack);
+  await beatenMapsInMapPack.reduce(async (_, t) => {
+    await TMXAPI.removeTrackFromMapPack(t.TrackID, mapPack);
   }, Promise.resolve());
-  console.log("Finished removing beaten maps.");
+  console.log("## Finished removing beaten maps.");
+};
 
+//const approvePendingUnbeatenMapsOnMapPack = async (
+//  mapPackTracks: TmxTrack[],
+//  unbeatenThisSeason: MapId[],
+//  mapPack: IMapPack,
+//) => {
+//  console.log("# Approving pending unbeaten maps.");
+//  const pendingUnbeatenMapsInMapPack = mapPackTracks.filter(
+//    (t) =>
+//      t.Status === TmxMapStatus.Pending &&
+//      !unbeatenThisSeason.includes(t.TrackID),
+//  );
+//  await pendingUnbeatenMapsInMapPack.reduce(async (_, t) => {
+//    await TMXAPI.setTrackStatusOnMapPack(
+//      t.TrackID,
+//      TmxMapStatus.Approved,
+//      mapPack,
+//    );
+//  }, Promise.resolve());
+//  console.log("## Finished approving pending unbeaten maps.");
+//};
+
+const addUnbeatenMapsToMapPack = async (
+  mapPackTracks: TmxTrack[],
+  unbeatenThisSeason: MapId[],
+  mapPack: IMapPack,
+) => {
+  console.log("# Adding unbeaten maps.");
   const unbeatenMapsNotInMapPack = unbeatenThisSeason.filter(
-    (id) => !mapPackTrackIds.includes(id),
+    (id) => !mapPackTracks.some((t: TmxTrack) => t.TrackID === id),
   );
   await unbeatenMapsNotInMapPack.reduce(async (_, trackId) => {
-    await addTrackToMapPack(trackId, mapPack);
+    await TMXAPI.addTrackToMapPack(trackId, mapPack);
   }, Promise.resolve());
-  console.log("Finished adding unbeaten maps.");
+  console.log("## Finished adding unbeaten maps.");
+};
+
+const unbeatenTrackIds = await MapMonitorAPI.getUnbeatenTracks();
+Object.keys(mapPacksBySeason).forEach(async (season) => {
+  const mapPack = mapPacksBySeason[season];
+  const mapPackTracks = await TMXAPI.getMapPackTracks(mapPack);
+
+  const unbeatenThisSeason = unbeatenTrackIds.filter(
+    (id: MapId) => id >= (+season - 1) * 100000 && id < +season * 100000,
+  );
+
+  await removeBeatenMapsFromMapPack(mapPackTracks, unbeatenThisSeason, mapPack);
+  // Uncomment after https://api2.mania.exchange/Issue/Index/18 resolves
+  // Status is missing in Tmx Track responses
+  //await approvePendingUnbeatenMapsOnMapPack(
+  //  mapPackTracks,
+  //  unbeatenThisSeason,
+  //  mapPack,
+  //);
+  await addUnbeatenMapsToMapPack(mapPackTracks, unbeatenThisSeason, mapPack);
 });

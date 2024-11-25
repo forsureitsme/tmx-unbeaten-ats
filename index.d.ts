@@ -1,6 +1,5 @@
 export interface IMapPack {
-  [id?: string]: string;
-  [secret?: string]: string;
+  [field: string]: string;
 }
 export type MapPackField = keyof IMapPack;
 export interface IMapPacksBySeason {
@@ -8,10 +7,21 @@ export interface IMapPacksBySeason {
 }
 export type Season = keyof IMapPacksBySeason;
 
+export type MapId = number;
+
 export type MapMonitorUnbeatenAt = ArrayLike<{
-  0: number;
+  0: MapId;
 }>;
 
+export enum TmxMapStatus {
+  "Approved" = 0,
+  "Pending" = 1,
+  "Changes Requested" = 2,
+  "Declined" = 3,
+  "Retired" = 4,
+}
+
 export type TmxTrack = {
-  TrackID: number;
+  TrackID: MapId;
+  Status: TmxMapStatus;
 };
