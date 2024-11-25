@@ -32,21 +32,23 @@ const unbeatenTrackIds: number[] = allUnbeatenATs.tracks.map(
 );
 
 const removeTrackFromMapPack = async (trackId: number, mapPack: IMapPack) => {
-  await fetch(
+  const r = await fetch(
     `${tmxApiBaseUrl}/mappack/manage/${mapPack.id}/remove_map/${trackId}?secret=${mapPack.secret}`,
     {
       method: "DELETE",
     },
-  );
+  ).then((r) => r.json());
+  console.log(`${trackId}: ${r.Message}`);
 };
 
 const addTrackToMapPack = async (trackId: number, mapPack: IMapPack) => {
-  await fetch(
+  const r = await fetch(
     `${tmxApiBaseUrl}/mappack/manage/${mapPack.id}/add_map/${trackId}?secret=${mapPack.secret}`,
     {
       method: "POST",
     },
-  );
+  ).then((r) => r.json());
+  console.log(`${trackId}: ${r.Message}`);
 };
 
 Object.keys(mapPacksBySeason).forEach(async (s) => {
@@ -65,32 +67,16 @@ Object.keys(mapPacksBySeason).forEach(async (s) => {
   const beatenMapsInMapPack = mapPackTrackIds.filter(
     (id) => !unbeatenThisSeason.includes(id),
   );
-  await beatenMapsInMapPack
-    .reduce((p, trackId) => {
-      return p
-        .then(async () => await removeTrackFromMapPack(trackId, mapPack))
-        .then(() => {
-          console.log(
-            `Map beaten removed from Season ${s}'s mappack: ${trackId}`,
-          );
-        });
-    }, Promise.resolve())
-    .then(() => {
-      console.log("Finished removing beaten maps.");
-    });
+  await beatenMapsInMapPack.reduce(async (_, trackId) => {
+    await removeTrackFromMapPack(trackId, mapPack);
+  }, Promise.resolve());
+  console.log("Finished removing beaten maps.");
 
   const unbeatenMapsNotInMapPack = unbeatenThisSeason.filter(
     (id) => !mapPackTrackIds.includes(id),
   );
-  await unbeatenMapsNotInMapPack
-    .reduce((p, trackId) => {
-      return p
-        .then(async () => await addTrackToMapPack(trackId, mapPack))
-        .then(() => {
-          console.log(`Map added to Season ${s}'s mappack: ${trackId}`);
-        });
-    }, Promise.resolve())
-    .then(() => {
-      console.log("Finished adding unbeaten maps.");
-    });
+  await unbeatenMapsNotInMapPack.reduce(async (_, trackId) => {
+    await addTrackToMapPack(trackId, mapPack);
+  }, Promise.resolve());
+  console.log("Finished adding unbeaten maps.");
 });
