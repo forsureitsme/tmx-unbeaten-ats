@@ -1,15 +1,24 @@
+import type {
+  IMapPack,
+  IMapPacksBySeason,
+  MapMonitorUnbeatenAt,
+  MapPackField,
+  TmxTrack,
+} from "types";
+
 const tmxApiBaseUrl = "https://trackmania.exchange/api";
 const startingSeason = 3;
-const mapPacksBySeason = {};
+const mapPacksBySeason: IMapPacksBySeason = {};
 const seasonFields = ["id", "secret"];
 
 let season = startingSeason;
 while (process.env[`SEASON_${season}_ID`]) {
   mapPacksBySeason[season] = {};
 
-  seasonFields.forEach((field) => {
-    mapPacksBySeason[season][field] =
-      process.env[`SEASON_${season}_${field.toUpperCase()}`];
+  seasonFields.forEach((field: MapPackField) => {
+    mapPacksBySeason[season][field] = process.env[
+      `SEASON_${season}_${(field as string).toUpperCase()}`
+    ] as string;
   });
 
   season++;
@@ -18,9 +27,11 @@ while (process.env[`SEASON_${season}_ID`]) {
 const allUnbeatenATs = await fetch(
   "https://map-monitor.xk.io/tmx/unbeaten_ats",
 ).then((r) => r.json());
-const unbeatenTrackIds = allUnbeatenATs.tracks.map((t) => t[0]);
+const unbeatenTrackIds: number[] = allUnbeatenATs.tracks.map(
+  (t: MapMonitorUnbeatenAt) => t[0],
+);
 
-const removeTrackFromMapPack = async (trackId, mapPack) => {
+const removeTrackFromMapPack = async (trackId: number, mapPack: IMapPack) => {
   await fetch(
     `${tmxApiBaseUrl}/mappack/manage/${mapPack.id}/remove_map/${trackId}?secret=${mapPack.secret}`,
     {
@@ -29,7 +40,7 @@ const removeTrackFromMapPack = async (trackId, mapPack) => {
   );
 };
 
-const addTrackToMapPack = async (trackId, mapPack) => {
+const addTrackToMapPack = async (trackId: number, mapPack: IMapPack) => {
   await fetch(
     `${tmxApiBaseUrl}/mappack/manage/${mapPack.id}/add_map/${trackId}?secret=${mapPack.secret}`,
     {
@@ -44,7 +55,9 @@ Object.keys(mapPacksBySeason).forEach(async (s) => {
     `${tmxApiBaseUrl}/mappack/get_mappack_tracks/${mapPack.id}?secret=${mapPack.secret}`,
   ).then((r) => r.json());
 
-  const mapPackTrackIds = mapPackTracks.map((m) => m.TrackID);
+  const mapPackTrackIds: number[] = mapPackTracks.map(
+    (m: TmxTrack) => m.TrackID,
+  );
   const unbeatenThisSeason = unbeatenTrackIds.filter(
     (id) => id >= (+s - 1) * 100000 && id < +s * 100000,
   );
