@@ -28,40 +28,39 @@ while (
 
   season++;
 }
-
 const removeBeatenMapsFromMapPack = async (
   mapPackTracks: TmxTrack[],
   unbeatenThisSeason: MapId[],
   mapPack: IMapPack,
 ) => {
   console.log("# Removing beaten maps from mappack.");
-  const beatenMapsInMapPack = mapPackTracks.filter(
-    (t) => !unbeatenThisSeason.includes(t.TrackID),
-  );
-  await beatenMapsInMapPack.reduce(async (_, t) => {
-    await TMXAPI.removeTrackFromMapPack(t.TrackID, mapPack);
-  }, Promise.resolve());
+  for (const tmxTrack of mapPackTracks) {
+    if (!unbeatenThisSeason.includes(tmxTrack.TrackID))
+      await TMXAPI.removeTrackFromMapPack(tmxTrack.TrackID, mapPack);
+  }
   console.log("## Finished removing beaten maps.");
 };
 
+// TODO: Don't loop again through mapPackTracks.
+// Refactor in such a way this and `removeBeatenMapsFromMapPack` loop through the array once
 //const approvePendingUnbeatenMapsOnMapPack = async (
 //  mapPackTracks: TmxTrack[],
 //  unbeatenThisSeason: MapId[],
 //  mapPack: IMapPack,
 //) => {
 //  console.log("# Approving pending unbeaten maps.");
-//  const pendingUnbeatenMapsInMapPack = mapPackTracks.filter(
-//    (t) =>
-//      t.Status === TmxMapStatus.Pending &&
-//      !unbeatenThisSeason.includes(t.TrackID),
-//  );
-//  await pendingUnbeatenMapsInMapPack.reduce(async (_, t) => {
-//    await TMXAPI.setTrackStatusOnMapPack(
-//      t.TrackID,
-//      TmxMapStatus.Approved,
-//      mapPack,
-//    );
-//  }, Promise.resolve());
+//  for (const tmxTrack of mapPackTracks) {
+//    if (
+//      tmxTrack.Status === TmxMapStatus.Pending &&
+//      !unbeatenThisSeason.includes(tmxTrack.TrackID)
+//    ) {
+//      await TMXAPI.setTrackStatusOnMapPack(
+//        tmxTrack.TrackID,
+//        TmxMapStatus.Approved,
+//        mapPack,
+//      );
+//    }
+//  }
 //  console.log("## Finished approving pending unbeaten maps.");
 //};
 
@@ -71,12 +70,14 @@ const addUnbeatenMapsToMapPack = async (
   mapPack: IMapPack,
 ) => {
   console.log("# Adding unbeaten maps.");
-  const unbeatenMapsNotInMapPack = unbeatenThisSeason.filter(
-    (id) => !mapPackTracks.some((t: TmxTrack) => t.TrackID === id),
-  );
-  await unbeatenMapsNotInMapPack.reduce(async (_, trackId) => {
-    await TMXAPI.addTrackToMapPack(trackId, mapPack);
-  }, Promise.resolve());
+  for (const unbeatenTrackId of unbeatenThisSeason) {
+    if (
+      !mapPackTracks.some(
+        (tmxTrack: TmxTrack) => tmxTrack.TrackID === unbeatenTrackId,
+      )
+    )
+      await TMXAPI.addTrackToMapPack(unbeatenTrackId, mapPack);
+  }
   console.log("## Finished adding unbeaten maps.");
 };
 
