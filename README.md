@@ -5,7 +5,6 @@ Updater for Season 3(and hopefully future ones) of Unbeaten ATs mappack in Track
 
 ## Prerequisites
 
-- A terminal to run commands
 - git
 - A typescript runtime of your preference (instructions will be for `bun`)
 
