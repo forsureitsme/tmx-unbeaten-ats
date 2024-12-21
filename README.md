@@ -25,7 +25,7 @@ bun i
 
 - Adjust environment variables
 
-Create an `.env` file at the root and add the following environment variables to it:
+Create an `.env` file at the root and add the `SEASON_X_ID` and `SEASON_X_SECRET` (where X is the season number) environment variables to it:
 
 ```.env
 # ID of the mappack (Can be found on mappack page)
@@ -39,7 +39,6 @@ SEASON_3_ID=
 SEASON_3_SECRET=
 ```
 ![Secret API Key location](https://github.com/user-attachments/assets/23910d39-bcc6-4a80-8424-e265d06baefd)
-
 
 ## Usage
 
