@@ -1,7 +1,8 @@
 name: Unbeaten AT check
 on:
-  schedule:
-    - cron: "42 * * * *"
+  - workflow_dispatch
+#  - schedule:
+#    - cron: "42 * * * *"
 
 jobs:
   check:
